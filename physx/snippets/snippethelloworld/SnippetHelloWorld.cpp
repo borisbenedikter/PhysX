@@ -41,8 +41,21 @@
 
 using namespace physx;
 
+// -------------------------------------------------------------------------- //
+// ------------------------------- Callbacks -------------------------------- //
+// -------------------------------------------------------------------------- //
+
+// Usually, the allocator callback and error callback are specific to the application, 
+// but PhysX provides default implementations that make it easy to get started. 
+
+// PhysX performs all allocations via the PxAllocatorCallback interface. 
+// You must implement this interface in order to initialize PhysX:
 static PxDefaultAllocator		gAllocator;
+
+// PhysX logs all error messages through the PxErrorCallback interface. 
+// You must implement this interface in order to initialize PhysX:
 static PxDefaultErrorCallback	gErrorCallback;
+
 static PxFoundation*			gFoundation = NULL;
 static PxPhysics*				gPhysics	= NULL;
 static PxDefaultCpuDispatcher*	gDispatcher = NULL;
@@ -80,13 +93,23 @@ static void createStack(const PxTransform& t, PxU32 size, PxReal halfExtent)
 
 void initPhysics(bool interactive)
 {
+	// Every PhysX module requires a PxFoundation instance to be available
+	// Inputs are:
+	// - SDK version we are using
+	// - Allocator callback
+	// - Error callback
 	gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
 
+	// The recordMemoryAllocations parameter specifies whether to perform memory profiling.
+	bool recordMemoryAllocations = true;
+	
+	// Create the PhysX Visual Debugger (PVD) 
 	gPvd = PxCreatePvd(*gFoundation);
 	PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate(PVD_HOST, 5425, 10);
 	gPvd->connect(*transport,PxPvdInstrumentationFlag::eALL);
 
-	gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(),true,gPvd);
+	// Create the (top-level?) PxPhysics object
+	gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), recordMemoryAllocations, gPvd);
 
 	PxSceneDesc sceneDesc(gPhysics->getTolerancesScale());
 	sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
